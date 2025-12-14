@@ -4,7 +4,24 @@ import re
 import pickle
 import requests
 import streamlit as st
+SIMILARITY_URL = "https://github.com/stevetanex/movie_recommendation_system_updated/releases/download/v1.0/similarity.pkl"
+SIMILARITY_FILE = "similarity.pkl"
 
+def download_similarity():
+    if os.path.exists(SIMILARITY_FILE):
+        return
+
+    st.info("🔄 Initializing recommendation engine (first run only)...")
+    try:
+        with requests.get(SIMILARITY_URL, stream=True, timeout=60) as r:
+            r.raise_for_status()
+            with open(SIMILARITY_FILE, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+    except Exception as e:
+        st.error(f"Failed to download similarity file: {e}")
+        st.stop()
 
 st.set_page_config(page_title="Movie Recommender (OMDb Posters)", layout="wide")
 
@@ -98,7 +115,8 @@ def recommend(movie, topn=5):
 
 try:
     movies = pickle.load(open("movie_list.pkl", "rb"))
-    similarity = pickle.load(open("similarity.pkl", "rb"))
+    download_similarity()
+    similarity = pickle.load(open(SIMILARITY_FILE, "rb"))
 except Exception as e:
     st.error(f"Failed to load pickles: {e}")
     st.stop()
